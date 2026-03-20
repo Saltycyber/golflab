@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyse de Swing IA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green-deep: #0a2e1a; --green-mid: #1a5c36; --green-bright: #2d9e5f;
+    --green-light: #7fd4a8; --green-pale: #e8f7ef; --gold: #c9a84c;
+    --gold-light: #f0d898; --cream: #faf8f3; --ink: #1a1a18;
+    --muted: #6b7068; --border: rgba(10,46,26,0.12);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+  header { background: var(--green-deep); padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--cream); }
+  .logo span { color: var(--gold); font-style: italic; }
+  .badge { background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3); color: var(--gold-light); font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase; }
+  main { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+  .hero { margin-bottom: 32px; }
+  .hero h1 { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--green-deep); line-height: 1.15; margin-bottom: 12px; }
+  .hero h1 em { font-style: italic; color: var(--green-bright); }
+  .hero p { font-size: 15px; color: var(--muted); line-height: 1.7; max-width: 560px; }
+  .upload-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 40px 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; margin-bottom: 20px; position: relative; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--green-bright); background: var(--green-pale); }
+  .upload-icon { width: 52px; height: 52px; background: var(--green-pale); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  .upload-icon svg { width: 22px; height: 22px; stroke: var(--green-mid); fill: none; stroke-width: 1.5; }
+  .upload-zone h3 { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+  .upload-zone p { font-size: 13px; color: var(--muted); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .or-divider { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; color: var(--muted); font-size: 13px; }
+  .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .url-row { display: flex; gap: 10px; margin-bottom: 28px; }
+  .url-input { flex: 1; padding: 13px 16px; border: 1px solid var(--border); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: white; outline: none; transition: border-color 0.2s; }
+  .url-input:focus { border-color: var(--green-bright); }
+  .url-input::placeholder { color: var(--muted); }
+  .btn-primary { background: var(--green-deep); color: white; border: none; padding: 13px 22px; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+  .btn-primary:hover { background: var(--green-mid); }
+  .preview-wrap { margin-bottom: 16px; position: relative; }
+  .preview-wrap video, .preview-wrap img { width: 100%; border-radius: 12px; max-height: 300px; object-fit: cover; background: #000; display: block; }
+  .preview-label { position: absolute; top: 12px; left: 12px; background: rgba(10,46,26,0.8); color: white; font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+  .remove-btn { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+  /* TRIM SECTION */
+  .trim-section { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+  .trim-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+  .trim-hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .trim-track { position: relative; height: 36px; background: var(--green-pale); border-radius: 8px; margin-bottom: 10px; user-select: none; }
+  .trim-range { position: absolute; top: 0; height: 100%; background: rgba(45,158,95,0.2); border: 2px solid var(--green-bright); border-radius: 6px; pointer-events: none; }
+  .trim-handle { position: absolute; top: 50%; transform: translateY(-50%); width: 14px; height: 26px; background: var(--green-deep); border-radius: 4px; cursor: ew-resize; z-index: 3; }
+  .trim-handle::after { content: '|||'; font-size: 7px; color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; height: 100%; letter-spacing: -1px; }
+  .trim-playhead { position: absolute; top: 0; width: 2px; height: 100%; background: var(--gold); border-radius: 1px; pointer-events: none; z-index: 2; transition: left 0.1s linear; }
+  .trim-times { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .trim-times b { color: var(--green-deep); }
+  .trim-play-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .trim-play-btn { background: var(--green-pale); border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--green-deep); cursor: pointer; }
+  .trim-play-btn:hover { background: #d0f0e0; }
+
+  .context-section { margin-bottom: 24px; }
+  .context-section label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 10px; }
+  .context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .context-btn { padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: white; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); cursor: pointer; text-align: left; transition: all 0.15s; }
+  .context-btn:hover { border-color: var(--green-bright); color: var(--ink); }
+  .context-btn.active { border-color: var(--green-bright); background: var(--green-pale); color: var(--green-deep); font-weight: 500; }
+  .analyse-btn { width: 100%; padding: 17px; background: var(--green-deep); color: white; border: none; border-radius: 14px; font-family: 'DM Serif Display', serif; font-size: 18px; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .analyse-btn:hover:not(:disabled) { background: var(--green-mid); transform: translateY(-1px); }
+  .analyse-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .loading-wrap { text-align: center; padding: 48px 24px; background: white; border-radius: 16px; border: 1px solid var(--border); }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--green-pale); border-top-color: var(--green-bright); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-wrap h3 { font-size: 16px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+  .loading-wrap p { font-size: 13px; color: var(--muted); }
+  .result-wrap { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .result-header { background: var(--green-deep); border-radius: 16px 16px 0 0; padding: 26px 30px; color: white; }
+  .result-header .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--gold-light); margin-bottom: 10px; }
+  .result-header h2 { font-family: 'DM Serif Display', serif; font-size: 24px; line-height: 1.2; margin-bottom: 8px; }
+  .result-header p { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; }
+  .result-body-wrap { background: white; border: 1px solid var(--border); border-top: none; border-radius: 0 0 16px 16px; padding: 26px 30px; }
+  .result-section { margin-bottom: 22px; }
+  .result-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; font-weight: 500; }
+  .fault-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fault-chip { background: var(--green-pale); color: var(--green-deep); border: 1px solid rgba(45,158,95,0.2); padding: 5px 13px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+  .fault-chip.warning { background: #fff8e8; color: #7a5500; border-color: rgba(201,168,76,0.3); }
+  .result-text { font-size: 14px; color: var(--ink); line-height: 1.75; white-space: pre-wrap; }
+  .exercise-card { background: var(--green-pale); border-radius: 12px; padding: 16px 18px; border-left: 3px solid var(--green-bright); margin-bottom: 10px; }
+  .exercise-card h4 { font-size: 14px; font-weight: 500; color: var(--green-deep); margin-bottom: 5px; }
+  .exercise-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .cta-box { background: var(--green-deep); border-radius: 14px; padding: 26px 30px; text-align: center; margin-top: 24px; }
+  .cta-box h3 { font-family: 'DM Serif Display', serif; font-size: 21px; color: white; margin-bottom: 8px; }
+  .cta-box p { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 18px; line-height: 1.6; }
+  .cta-gold { background: var(--gold); color: var(--green-deep); border: none; border-radius: 10px; padding: 13px 30px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .cta-gold:hover { background: var(--gold-light); }
+  .restart-btn { width: 100%; margin-top: 12px; padding: 13px; background: none; border: 1px solid var(--border); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .restart-btn:hover { border-color: var(--green-bright); color: var(--ink); }
+  .tip { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+  .error-note { background: #fff8e8; border: 1px solid rgba(201,168,76,0.4); border-radius: 10px; padding: 14px 16px; margin-top: 16px; font-size: 13px; color: #6b4f00; line-height: 1.6; }
+  .error-note b { color: #4a3500; }
+  @media (max-width: 600px) {
+    header { padding: 18px; }
+    main { padding: 28px 16px 60px; }
+    .hero h1 { font-size: 28px; }
+    .context-grid { grid-template-columns: 1fr; }
+    .url-row { flex-direction: column; }
+    .result-header, .result-body-wrap { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Golf<span>Lab</span> IA</div>
+  <div class="badge">Powered by Claude AI</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Analysez votre swing<br><em>en quelques secondes</em></h1>
+    <p>Uploadez une vidéo de votre swing. Sélectionnez la zone du swing, et notre IA identifie vos défauts TPI, leurs causes physiques, et vous propose un programme personnalisé.</p>
+  </div>
+
+  <div id="upload-section">
+    <div class="upload-zone" id="dropzone">
+      <input type="file" id="fileInput" accept="video/*,image/*" onchange="handleFile(this.files[0])">
+      <div class="upload-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <h3>Déposez votre vidéo ou photo ici</h3>
+      <p>MP4, MOV, JPG, PNG · Sélection de la zone swing incluse</p>
+    </div>
+    <div class="or-divider">ou utilisez une URL</div>
+    <div class="url-row">
+      <input type="text" class="url-input" id="urlInput" placeholder="https://... lien vidéo ou image">
+      <button class="btn-primary" onclick="handleUrl()">Charger</button>
+    </div>
+  </div>
+
+  <div id="preview-section" style="display:none">
+    <div class="preview-wrap">
+      <div id="media-preview"></div>
+      <div class="preview-label" id="preview-label">Prêt</div>
+      <button class="remove-btn" onclick="resetMedia()">×</button>
+    </div>
+
+    <div class="trim-section" id="trim-section" style="display:none">
+      <div class="trim-title">Sélectionnez la zone du swing</div>
+      <div class="trim-hint">Faites glisser les poignées pour isoler uniquement le swing. Évitez les moments avant/après pour une analyse précise.</div>
+      <div class="trim-play-row">
+        <button class="trim-play-btn" onclick="previewTrim()">▶ Prévisualiser la sélection</button>
+        <span id="trim-duration-label" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div class="trim-track" id="trim-track">
+        <div class="trim-range" id="trim-range"></div>
+        <div class="trim-handle" id="handle-in" style="left:0px"></div>
+        <div class="trim-handle" id="handle-out" style="right:0px; left:auto"></div>
+        <div class="trim-playhead" id="trim-playhead" style="left:0%"></div>
+      </div>
+      <div class="trim-times">
+        <span>Début: <b id="trim-in-label">0.0s</b></span>
+        <span>Fin: <b id="trim-out-label">0.0s</b></span>
+        <span>Total: <b id="trim-total-label">0.0s</b></span>
+      </div>
+    </div>
+
+    <div class="context-section">
+      <label>Votre problème principal ? (optionnel)</label>
+      <div class="context-grid">
+        <button class="context-btn" onclick="toggleContext(this,'slice')">Slice / balle à droite</button>
+        <button class="context-btn" onclick="toggleContext(this,'hook')">Hook / balle à gauche</button>
+        <button class="context-btn" onclick="toggleContext(this,'fat_thin')">Contact gras ou fin</button>
+        <button class="context-btn" onclick="toggleContext(this,'power')">Manque de puissance</button>
+        <button class="context-btn" onclick="toggleContext(this,'back_pain')">Douleur au dos</button>
+        <button class="context-btn" onclick="toggleContext(this,'inconsistency')">Manque de régularité</button>
+      </div>
+    </div>
+
+    <button class="analyse-btn" id="analyseBtn" onclick="analyseSwing()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Analyser mon swing
+    </button>
+    <p class="tip">L'analyse prend 15 à 30 secondes. Vos données ne sont pas conservées.</p>
+  </div>
+
+  <div id="loading-section" style="display:none">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <h3 id="loading-msg">Extraction des images clés...</h3>
+      <p>L'IA examine votre posture, trajectoire et positions clés</p>
+    </div>
+  </div>
+
+  <div id="result-section" style="display:none"></div>
+</main>
+
+<script>
+  let mediaData = null, mediaType = null, selectedContext = [];
+  let loadingInterval = null;
+  let trimIn = 0, trimOut = 1, videoDuration = 0;
+  let isDragging = null;
+  let videoEl = null;
+
+  const loadingMessages = [
+    'Extraction des images clés...',
+    'Analyse de la posture...',
+    'Détection des défauts TPI...',
+    'Analyse des causes physiques...',
+    'Génération du programme personnalisé...'
+  ];
+
+  function toggleContext(btn, val) {
+    btn.classList.toggle('active');
+    selectedContext = btn.classList.contains('active')
+      ? [...selectedContext, val]
+      : selectedContext.filter(v => v !== val);
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      mediaData = e.target.result;
+      mediaType = file.type;
+      showPreview(mediaData, mediaType);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleUrl() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    mediaData = url;
+    mediaType = url.match(/\.(mp4|mov|avi|webm)/i) ? 'video/mp4' : 'image/jpeg';
+    showPreview(url, mediaType);
+  }
+
+  function showPreview(src, type) {
+    const preview = document.getElementById('media-preview');
+    if (type.startsWith('video')) {
+      preview.innerHTML = `<video id="previewVideo" src="${src}" controls muted playsinline style="width:100%;border-radius:12px;max-height:300px;background:#000;display:block"></video>`;
+      videoEl = document.getElementById('previewVideo');
+      videoEl.addEventListener('loadedmetadata', () => {
+        videoDuration = videoEl.duration;
+        trimIn = 0; trimOut = videoDuration;
+        document.getElementById('trim-section').style.display = 'block';
+        updateTrimUI();
+        initTrimHandles();
+        videoEl.addEventListener('timeupdate', () => {
+          const pct = (videoEl.currentTime / videoDuration) * 100;
+          document.getElementById('trim-playhead').style.left = pct + '%';
+        });
+      });
+    } else {
+      preview.innerHTML = `<img src="${src}" style="width:100%;border-radius:12px;max-height:300px;object-fit:cover;display:block">`;
+      document.getElementById('trim-section').style.display = 'none';
+    }
+    document.getElementById('upload-section').style.display = 'none';
+    document.getElementById('preview-section').style.display = 'block';
+  }
+
+  function fmt(s) { return s.toFixed(1) + 's'; }
+
+  function updateTrimUI() {
+    const track = document.getElementById('trim-track');
+    const tw = track.offsetWidth;
+    const inPct = (trimIn / videoDuration) * 100;
+    const outPct = (trimOut / videoDuration) * 100;
+    document.getElementById('handle-in').style.left = `calc(${inPct}% - 7px)`;
+    document.getElementById('handle-out').style.left = `calc(${outPct}% - 7px)`;
+    const range = document.getElementById('trim-range');
+    range.style.left = inPct + '%';
+    range.style.width = (outPct - inPct) + '%';
+    document.getElementById('trim-in-label').textContent = fmt(trimIn);
+    document.getElementById('trim-out-label').textContent = fmt(trimOut);
+    document.getElementById('trim-total-label').textContent = fmt(trimOut - trimIn);
+  }
+
+  function initTrimHandles() {
+    const track = document.getElementById('trim-track');
+    const handleIn = document.getElementById('handle-in');
+    const handleOut = document.getElementById('handle-out');
+
+    function startDrag(e, which) {
+      e.preventDefault();
+      isDragging = which;
+      const onMove = ev => {
+        const rect = track.getBoundingClientRect();
+        const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        let pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const t = pct * videoDuration;
+        if (isDragging === 'in') {
+          trimIn = Math.min(t, trimOut - 0.5);
+        } else {
+          trimOut = Math.max(t, trimIn + 0.5);
+        }
+        updateTrimUI();
+      };
+      const stopDrag = () => { isDragging = null; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', stopDrag); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', stopDrag); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchmove', onMove);
+      document.addEventListener('touchend', stopDrag);
+    }
+
+    handleIn.addEventListener('mousedown', e => startDrag(e, 'in'));
+    handleIn.addEventListener('touchstart', e => startDrag(e, 'in'));
+    handleOut.addEventListener('mousedown', e => startDrag(e, 'out'));
+    handleOut.addEventListener('touchstart', e => startDrag(e, 'out'));
+  }
+
+  function previewTrim() {
+    if (!videoEl) return;
+    videoEl.currentTime = trimIn;
+    videoEl.play();
+    const stop = () => { if (videoEl.currentTime >= trimOut) { videoEl.pause(); videoEl.removeEventListener('timeupdate', stop); } };
+    videoEl.addEventListener('timeupdate', stop);
+  }
+
+  function resetMedia() {
+    mediaData = null; mediaType = null; selectedContext = []; videoEl = null;
+    trimIn = 0; trimOut = 1; videoDuration = 0;
+    document.getElementById('upload-section').style.display = 'block';
+    document.getElementById('preview-section').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('loading-section').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('urlInput').value = '';
+  }
+
+  async function extractVideoFrames() {
+    return new Promise((resolve, reject) => {
+      if (!videoEl) return reject('No video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const frames = [];
+      const duration = trimOut - trimIn;
+      const timestamps = [
+        trimIn + duration * 0.05,
+        trimIn + duration * 0.25,
+        trimIn + duration * 0.50,
+        trimIn + duration * 0.72,
+        trimIn + duration * 0.92
+      ];
+      const labels = ['Address / Setup', 'Début backswing', 'Top backswing', 'Impact', 'Follow-through'];
+
+      let i = 0;
+      function seekNext() {
+        if (i >= timestamps.length) return resolve({ frames, labels });
+        videoEl.currentTime = timestamps[i];
+      }
+
+      videoEl.addEventListener('seeked', function onSeeked() {
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        ctx.drawImage(videoEl, 0, 0);
+        frames.push(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+        i++;
+        if (i < timestamps.length) {
+          seekNext();
+        } else {
+          videoEl.removeEventListener('seeked', onSeeked);
+          resolve({ frames, labels });
+        }
+      });
+      seekNext();
+    });
+  }
+
+  async function analyseSwing() {
+    if (!mediaData) return;
+    document.getElementById('preview-section').style.display = 'none';
+    document.getElementById('loading-section').style.display = 'block';
+
+    let msgIdx = 0;
+    loadingInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % loadingMessages.length;
+      document.getElementById('loading-msg').textContent = loadingMessages[msgIdx];
+    }, 2800);
+
+    const contextStr = selectedContext.length > 0 ? `Le golfeur mentionne ces problèmes: ${selectedContext.join(', ')}.` : '';
+
+    const systemPrompt = `Tu es un expert TPI (Titleist Performance Institute) certifié et coach de golf spécialisé en biomécanique. Tu analyses des images de swing de golf pour identifier les défauts techniques selon le système TPI.
+
+Les 16 caractéristiques TPI: S-Posture, C-Posture, Loss of Posture, Flat Shoulder Plane, Flying Elbow, Early Extension, Over the Top, Sway, Slide, Late Buckle, Reverse Spine Angle, Forward Lunge, Hanging Back, Casting, Scooping, Chicken Winging.
+
+Réponds UNIQUEMENT en JSON valide:
+{
+  "titre": "titre court du diagnostic",
+  "resume": "résumé 2-3 phrases",
+  "defauts_identifies": ["défaut1", "défaut2"],
+  "causes_physiques": "causes physiques en 2-3 phrases",
+  "analyse_detaillee": "analyse détaillée 3-4 phrases sur les positions clés",
+  "exercices": [
+    {"nom": "nom exercice", "description": "description pratique courte"},
+    {"nom": "nom exercice 2", "description": "description pratique courte"}
+  ],
+  "priorite": "La première chose à corriger en une phrase"
+}
+Réponds TOUJOURS en français.`;
+
+    const userPrompt = `Analyse ce swing de golf. ${contextStr} Tu reçois 5 images extraites aux moments clés: address, backswing début, top backswing, impact, follow-through. Identifie les défauts TPI et donne un diagnostic complet.`;
+
+    try {
+      const messages = [];
+
+      if (mediaType && mediaType.startsWith('video')) {
+        document.getElementById('loading-msg').textContent = 'Extraction des images clés...';
+        const { frames, labels } = await extractVideoFrames();
+        const content = [];
+        frames.forEach((f, idx) => {
+          content.push({ type: 'text', text: `📸 Image ${idx+1} — ${labels[idx]}:` });
+          content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f } });
+        });
+        content.push({ type: 'text', text: userPrompt });
+        messages.push({ role: 'user', content });
+      } else if (mediaType && mediaType.startsWith('image')) {
+        const base64 = mediaData.includes(',') ? mediaData.split(',')[1] : mediaData;
+        messages.push({ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: userPrompt }
+        ]});
+      }
+
+      const response = await fetch('/api/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages
+        })
+      });
+
+      const data = await response.json();
+      clearInterval(loadingInterval);
+
+      if (data.error) throw new Error(data.error.message);
+
+      const text = data.content.map(b => b.text || '').join('');
+      const clean = text.replace(/```json|```/g, '').trim();
+      showResult(JSON.parse(clean));
+
+    } catch (err) {
+      clearInterval(loadingInterval);
+      showError(err.message || '');
+    }
+  }
+
+  function showResult(r) {
+    document.getElementById('loading-section').style.display = 'none';
+    const section = document.getElementById('result-section');
+    section.style.display = 'block';
+
+    const faults = (r.defauts_identifies || []).map((f, i) =>
+      `<span class="fault-chip ${i > 1 ? 'warning' : ''}">${f}</span>`).join('');
+
+    const exercises = (r.exercices || []).map(ex => `
+      <div class="exercise-card"><h4>${ex.nom}</h4><p>${ex.description}</p></div>`).join('');
+
+    section.innerHTML = `
+      <div class="result-wrap">
+        <div class="result-header">
+          <div class="label">Diagnostic IA — Analyse TPI</div>
+          <h2>${r.titre}</h2>
+          <p>${r.resume}</p>
+        </div>
+        <div class="result-body-wrap">
+          ${faults ? `<div class="result-section"><h3>Défauts identifiés</h3><div class="fault-chips">${faults}</div></div>` : ''}
+          <div class="result-section"><h3>Analyse détaillée</h3><p class="result-text">${r.analyse_detaillee}</p></div>
+          <div class="result-section"><h3>Causes physiques</h3><p class="result-text">${r.causes_physiques}</p></div>
+          ${r.priorite ? `<div class="result-section"><h3>Priorité n°1</h3><div class="exercise-card" style="border-color:var(--gold)"><p style="color:var(--green-deep);font-weight:500">${r.priorite}</p></div></div>` : ''}
+          <div class="result-section"><h3>Exercices recommandés</h3>${exercises}</div>
+          <div class="cta-box">
+            <h3>Programme complet personnalisé</h3>
+            <p>8 semaines de programme, sessions avec notre coach TPI certifiée, analyse simulateur et communauté.</p>
+            <button class="cta-gold">Rejoindre GolfLab — 39 CHF/mois</button>
+          </div>
+          <button class="restart-btn" onclick="resetMedia()">Analyser un autre swing</button>
+        </div>
+      </div>`;
+  }
+
+  function showError(msg) {
+    document.getElementById('loading-section').style.display = 'none';
+    const section = document.getElementById('result-section');
+    section.style.display = 'block';
+    const isApiKey = msg && (msg.includes('401') || msg.includes('auth') || msg.includes('key') || msg.includes('API'));
+    section.innerHTML = `
+      <div class="result-wrap">
+        <div class="result-header" style="background:#7a1a1a">
+          <div class="label">Erreur</div>
+          <h2>Analyse impossible</h2>
+          <p>${isApiKey ? 'Clé API manquante ou invalide.' : 'Une erreur est survenue. Vérifiez votre connexion.'}</p>
+        </div>
+        <div class="result-body-wrap">
+          ${isApiKey ? `<div class="error-note">
+            <b>Pour faire fonctionner cet outil :</b><br>
+            Ce tool utilise l'API Claude d'Anthropic. Pour le déployer en production, vous devez :<br>
+            1. Créer un compte sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--green-mid)">console.anthropic.com</a><br>
+            2. Générer une clé API<br>
+            3. Héberger ce fichier sur un serveur (ex: Netlify + fonction serverless) avec la clé en variable d'environnement<br>
+            <br>Je peux vous préparer les instructions de déploiement complètes.
+          </div>` : ''}
+          <button class="restart-btn" onclick="resetMedia()">Réessayer</button>
+        </div>
+      </div>`;
+  }
+
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+</script>
+</body>
+</html>
